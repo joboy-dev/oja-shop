@@ -1,0 +1,6 @@
+node_modules
+.next
+package-lock.json
+server/db/migrations
+PLAN.md
+AGENTS.md

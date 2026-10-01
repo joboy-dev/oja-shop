@@ -2,7 +2,7 @@
 
 Online shop built entirely inside one Next.js 16 app: storefront, Google sign-in, cart, checkout, orders, admin. Neon Postgres (Drizzle) persists everything; Mailgun sends email. No separate backend.
 
-**Roadmap:** `PLAN.md` — read the matching section before starting any feature (pages §7, data model §3, checkout §5, email §6, design §8–9, phases §12). The repo is mid-migration from an old admin template; code under `components/shared/`, `lib/stores/`, `lib/utils/API.ts` is legacy slated for deletion — build new work in the target structure below, never on top of legacy.
+**Roadmap:** `PLAN.md` — read the matching section before starting any feature (pages §7, data model §3, checkout §5, email §6, design §8–9, phases §12). Its "Implementation status" table at the top says what is built and what is left.
 
 ## Layers — the one rule that matters
 
@@ -12,11 +12,15 @@ Code lives in exactly one of three zones, and imports flow one way:
 - **`components/`** — UI only. Receives data as props; mutates through `server/actions/*`. Imports `lib/*`, other components, and `server/actions/*` — nothing else from `server/`.
 - **`server/`** — backend. Every file starts with `import "server-only"` except `server/actions/*`, which start with `"use server"`.
   - `db/` Drizzle client + schema → `repositories/` queries only → `services/` business rules → `actions/` the browser's only door.
-  - `email/` Mailgun transport, one function per email, React Email templates. Called from services, never from repositories or components.
+  - `email/` Mailgun transport, one function per email, React Email templates. Reached only through `services/notification.service.ts` (one function per business event), which actions call inside `after()` so mail can never fail a request.
   - `storage/` Neon Object Storage (S3 API) transport only; `services/media.service.ts` owns upload rules. File bytes never go in Postgres or Server Actions; the DB stores object keys, never full URLs — bucket hostnames change per Neon branch (`PLAN.md` §6a).
   - `auth/` Better Auth instance, `getSession` / `requireUser` / `requireAdmin`.
   - `config/env.ts` zod-validated server env; read env through it, not `process.env`.
-- **`lib/`** — client-safe code shared by both sides: zod validators, DTO types, pure utils, `pricing/`, config, zustand stores, hooks, Better Auth client. Imports nothing from `components/` or `server/`.
+- **`lib/`** — client-safe code shared by both sides: zod validators, DTO types, pure utils, `pricing/`, `cart/` (pure merge rules), config, hooks, Better Auth client. Imports nothing from `components/` or `server/`. The cart zustand store lives in `components/cart/cart-store.ts` because it calls server actions.
+
+Admin mutations use `updateTag` (not `revalidateTag(…, "max")`, which serves stale pages once) so changes show immediately. Uploads go browser → bucket via `createUploadUrlAction`; `media.service.verifyUploads` is the real size/type gate, since a signed URL can't cap size.
+
+Scripts (`npm run db:seed`, `storage:cleanup`) run with `tsx --conditions react-server` so `server-only` is a no-op; a script that renders React email needs a plain `tsx` run instead. Put long-running work in a `main()` function (no top-level await).
 
 One feature = one file per layer (`order.repo.ts`, `order.service.ts`, `checkout.actions.ts`, `lib/validators/checkout.ts`, `lib/types/order.ts`). Keep files single-purpose; split rather than grow a grab-bag. `create_module.sh <name>` scaffolds this set.
 

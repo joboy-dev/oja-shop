@@ -1,84 +1,60 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Bricolage_Grotesque, Geist_Mono, Instrument_Sans } from "next/font/google";
+import { Providers } from "@/components/layout/Providers";
+import { ThemeScript } from "@/components/layout/ThemeScript";
+import { publicEnv } from "@/lib/config/public-env";
+import { siteConfig } from "@/lib/config/site";
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
-import { Geist, Geist_Mono } from "next/font/google"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const display = Bricolage_Grotesque({
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  variable: "--font-bricolage",
+  display: "swap",
+});
+const sans = Instrument_Sans({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-instrument",
+  display: "swap",
+});
+const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Medstaq Technologies",
-  description: "Medstaq is the unified platform connecting hospitals, doctors, and patients to build the future of digital healthcare.",
-  icons: {
-    icon: "/favicon/favicon.ico",
-    shortcut: "/favicon/favicon-16x16.png",
-    apple: "/favidon/apple-touch-icon.png",
+  metadataBase: new URL(publicEnv.appUrl),
+  title: { default: `${siteConfig.name} — ${siteConfig.tagline}`, template: `%s · ${siteConfig.name}` },
+  description: siteConfig.description,
+  applicationName: siteConfig.name,
+  openGraph: {
+    type: "website",
+    siteName: siteConfig.name,
+    title: `${siteConfig.name} — ${siteConfig.tagline}`,
+    description: siteConfig.description,
+    locale: "en_NG",
   },
-
-  // // The canonical URL for the site
-  // // canonical: "https://joboy-dev.com",
-
-  // // Open Graph metadata for social sharing
-  // openGraph: {
-  //   title: "Medstaq Technologies",
-  //   description: "The central ecosystem for digital healthcare innovation.",
-  //   url: "https://joboy-dev.com",
-  //   siteName: "Medstaq Technologies",
-  //   images: [
-  //     {
-  //       url: "https://joboy-dev.com/og-image.png",
-  //       width: 1200,
-  //       height: 630,
-  //       alt: "Medstaq Technologies",
-  //     },
-  //   ],
-  //   locale: "en_US",
-  //   type: "website",
-  // },
-
-  // // Twitter Card metadata
-  // twitter: {
-  //   card: "summary_large_image",
-  //   title: "Medstaq Technologies",
-  //   description: "The central ecosystem for digital healthcare innovation.",
-  //   site: "@joboydev",
-  //   creator: "@joboydev",
-  //   images: ["https://joboy-dev.com/og-image.png"],
-  // },
-
-  // // Theme color for browsers
-  // themeColor: "#0f172a",
-
-  // // Robots meta tag for search engines
-  // robots: {
-  //   index: true,
-  //   follow: true,
-  //   googleBot: {
-  //     index: true,
-  //     follow: true,
-  //     "max-snippet": -1,
-  //     "max-image-preview": "large",
-  //     "max-video-preview": -1,
-  //   },
-  // },
-
-  // Manifest for PWA support (if applicable)
-  // manifest: "/site.webmanifest",
+  twitter: { card: "summary_large_image" },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f6fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0e26" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+};
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <>
-      <Toaster position="bottom-right" reverseOrder={false} />
-      <html lang="en">
-        <body className="bg-background font-sans antialiased">
-          {children}
-        </body>
-      </html>
-    </>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${display.variable} ${sans.variable} ${mono.variable}`}
+    >
+      <head>
+        <ThemeScript />
+      </head>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
   );
 }

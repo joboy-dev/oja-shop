@@ -6,6 +6,29 @@
 
 ---
 
+## Implementation status (updated after the first build pass)
+
+| Phase | Status | Notes |
+|---|---|---|
+| 1 Foundation | Done | Legacy template removed, layered folders, ESLint layer boundaries (verified to reject violations), env validation |
+| 2 Design system | Done | Tokens, fonts, 26 primitives, theme toggle, `/dev/ui` showcase (dev only; delete before launch) |
+| 3 Database | Done | 18 tables migrated to Neon; idempotent seed: 6 categories, 24 products, 47 images |
+| 4 Auth | Done | Google via Better Auth; proxy gate + `requireUser`/`authorize` boundary; OAuth handshake verified. Full Google consent not exercised headlessly |
+| 5 Catalogue | Done | Home, `/shop`, category, product detail, ⌘K search, URL-synced filters |
+| 6 Cart + wishlist | Done | Optimistic guest cart, merge on sign-in, DB cart for signed-in users, stock clamping |
+| 7 Checkout + orders | Done | 4-step checkout, atomic `placeOrder` (verified: no oversell under concurrency, idempotent), success page, account orders/addresses/wishlist |
+| 8 Email | Done in code | Mailgun transport, 5 templates, logging, post-response sending. **Blocked by Mailgun sandbox**: recipients must be authorised (see §10) |
+| 9 Admin + uploads | Done | Dashboard with stats and chart, products (drag-and-drop photos, reorder, alt text), categories, orders (guarded status flow, mark paid, resend email, email log), customers, messages, `npm run storage:cleanup`. Verified in a real browser against Neon and the bucket |
+| 10 Content & polish | Done | About, contact, FAQ, shipping, privacy, terms, 404/error, sitemap, robots, manifest, share image, Apple icon, motion audit, accessibility audit (axe: 0 violations on 21 pages × 2 themes), Lighthouse. `/dev/ui` stays as a dev-only page (404s in production) |
+
+Lighthouse, mobile profile (slow 4G, 4× CPU), production build: accessibility 100, best practices 100, SEO 100 on all indexable pages; performance 85–95 (LCP is bytes-bound under the simulated 1.6 Mbps link). Cart, login and checkout score 63 on SEO by design (`noindex`).
+
+Storage spike result: browsers can upload straight to Neon Object Storage (CORS allows `PUT` from any origin), so the server-upload fallback in §6a is not needed. The bucket is `uploads` (public read), not `oja-media`; set `STORAGE_BUCKET` to your bucket's name.
+
+Deviations from the plan above: the cart store is in `components/cart/` (it calls actions, so `lib/` can't hold it); `countrycitystatejson` was dropped for a static list of Nigeria's 37 states; `STORAGE_PUBLIC_URL` is the bucket host only; `server/services/notification.service.ts` was added as the single entry point for email; bank-transfer details come from optional `BANK_*` env vars.
+
+---
+
 ## 0. Decisions at a glance
 
 | Concern | Choice | Why |
@@ -439,7 +462,7 @@ The generator in `ui-ux-pro-max` proposed an emerald/orange "vibrant block" syst
 | `--accent` | `#F0B429` turmeric | `#F5C24C` | sale tags, badges, highlights — never body text |
 | `--on-accent` | `#14163A` | `#0C0E26` | (9.3:1 / 11.5:1) |
 | `--success` | `#1F7A55` leaf | `#4CC38A` | in stock, delivered |
-| `--danger` | `#C8324B` hibiscus | `#FF6B81` | errors, remove |
+| `--danger` | `#B52B43` hibiscus | `#FF6B81` | errors, remove |
 
 Replaces the current lime `#97da00` / blue `#0085fe` / navy palette entirely. Tokens are mapped in `@theme inline` so Tailwind classes read `bg-surface text-fg border-border bg-primary`. Dark mode follows the system by default with a manual toggle (no flash: inline theme script in `<head>`).
 
