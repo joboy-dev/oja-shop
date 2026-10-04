@@ -1,4 +1,5 @@
 import "server-only";
+import { expo } from "@better-auth/expo";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
@@ -7,11 +8,26 @@ import { env } from "@/server/config/env";
 import { db, schema } from "@/server/db/client";
 import { notifyWelcome } from "@/server/services/notification.service";
 
+/**
+ * Origins the mobile app may be sent back to after Google sign-in. The expo plugin appends the
+ * session to that deep link, so never trust a scheme you don't own: `oja://` is ours; Expo Go's
+ * `exp://` is only trusted in development or when MOBILE_TRUSTED_ORIGINS lists it explicitly.
+ */
+const mobileOrigins = [
+  "oja://",
+  ...(process.env.NODE_ENV === "development" ? ["exp://", "exp://**"] : []),
+  ...(process.env.MOBILE_TRUSTED_ORIGINS ?? "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+];
+
 export const isAdminEmail = (email: string) => env.ADMIN_EMAILS.includes(email.trim().toLowerCase());
 
 export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
+  trustedOrigins: mobileOrigins,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
@@ -57,5 +73,6 @@ export const auth = betterAuth({
       },
     },
   },
-  plugins: [nextCookies()],
+  // nextCookies() must stay last.
+  plugins: [expo(), nextCookies()],
 });
