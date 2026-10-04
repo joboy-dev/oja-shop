@@ -8,7 +8,7 @@ Online shop built entirely inside one Next.js 16 app: storefront, Google sign-in
 
 Code lives in exactly one of three zones, and imports flow one way:
 
-- **`app/`** — routing and composition. Pages/layouts `await` params, call `server/services` for reads and `server/auth/session` for guards, pass plain DTOs to components. Only route handler: `app/api/auth/[...all]`.
+- **`app/`** — routing and composition. Pages/layouts `await` params, call `server/services` for reads and `server/auth/session` for guards, pass plain DTOs to components. Route handlers: `app/api/auth/[...all]` (Better Auth) and `app/api/v1/*` — the JSON API the mobile app (`../shop-mobile-app`) uses. v1 handlers are thin wrappers over `server/services` built with `route()` from `app/api/v1/_lib/handler.ts` (guard → `readJson` → one service call → data, same `ActionResult` envelope as actions); keep v1 changes additive.
 - **`components/`** — UI only. Receives data as props; mutates through `server/actions/*`. Imports `lib/*`, other components, and `server/actions/*` — nothing else from `server/`.
 - **`server/`** — backend. Every file starts with `import "server-only"` except `server/actions/*`, which start with `"use server"`.
   - `db/` Drizzle client + schema → `repositories/` queries only → `services/` business rules → `actions/` the browser's only door.
